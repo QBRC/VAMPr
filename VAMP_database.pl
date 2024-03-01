@@ -230,31 +230,31 @@ if(defined($orthologyFile)) {
 
 	sub writeProteinSequence {
 		my %uniprotOrthologyHash = ();
-		{
-			my $file = $decoy eq '' ? "$dataPath/orthology_uniprot.txt" : "$dataPath/orthology_uniprot.decoy.txt";
-			if(not -r $file or $redownload) {
-				open(my $writer, "> $file");
-				foreach my $orthology (sort keys %orthologyHash) {
-					open(my $reader, "wget --no-verbose -O - http://rest.genome.jp/link/uniprot/$orthology |");
-					while(my $line = <$reader>) {
-						chomp($line);
-						my ($orthology, $uniprot) = split(/\t/, $line);
-						$orthology =~ s/^ko://;
-						$uniprot =~ s/^up://;
-						print $writer join("\t", $orthology, $uniprot), "\n";
-					}
-					close($reader);
-				}
-				close($writer);
-			}
-			open(my $reader, $file);
-			while(my $line = <$reader>) {
-				chomp($line);
-				my ($orthology, $uniprot) = split(/\t/, $line);
-				$uniprotOrthologyHash{$uniprot}->{$orthology} = 1 if($orthologyHash{$orthology});
-			}
-			close($reader);
-		}
+#		{
+#			my $file = $decoy eq '' ? "$dataPath/orthology_uniprot.txt" : "$dataPath/orthology_uniprot.decoy.txt";
+#			if(not -r $file or $redownload) {
+#				open(my $writer, "> $file");
+#				foreach my $orthology (sort keys %orthologyHash) {
+#					open(my $reader, "wget --no-verbose -O - http://rest.genome.jp/link/uniprot/$orthology |");
+#					while(my $line = <$reader>) {
+#						chomp($line);
+#						my ($orthology, $uniprot) = split(/\t/, $line);
+#						$orthology =~ s/^ko://;
+#						$uniprot =~ s/^up://;
+#						print $writer join("\t", $orthology, $uniprot), "\n";
+#					}
+#					close($reader);
+#				}
+#				close($writer);
+#			}
+#			open(my $reader, $file);
+#			while(my $line = <$reader>) {
+#				chomp($line);
+#				my ($orthology, $uniprot) = split(/\t/, $line);
+#				$uniprotOrthologyHash{$uniprot}->{$orthology} = 1 if($orthologyHash{$orthology});
+#			}
+#			close($reader);
+#		}
 		my %geneOrthologyHash = ();
 		{
 			my $file = $decoy eq '' ? "$dataPath/orthology_gene.txt" : "$dataPath/orthology_gene.decoy.txt";
