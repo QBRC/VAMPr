@@ -20,7 +20,8 @@ my @samMandatoryFieldList = ('qname', 'flag', 'rname', 'pos', 'mapq', 'cigar', '
 (my $vampPath = abs_path($0)) =~ s/\/[^\/]*$//;
 my $dataPath = "$vampPath/VAMP_data";
 
-GetOptions('h' => \(my $help = ''),
+GetOptions(
+	'h' => \(my $help = ''),
 	't=s' => \(my $temporaryDirectory = defined($ENV{'TMPDIR'}) ? $ENV{'TMPDIR'} : '/tmp'),
 	'p=i' => \(my $threads = 1),
 	'e=f' => \(my $evalue = 10),
@@ -63,8 +64,9 @@ my %proteinSequenceHash = ();
 chomp(my $hostname = `hostname`);
 my $temporaryPrefix = "$temporaryDirectory/VAMP.$hostname.$$";
 {
-#	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $inputFastaFile --out $temporaryPrefix.sam --outfmt 101 --max-target-seqs 0 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --quiet");
-	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $inputFastaFile --out $temporaryPrefix.sam --outfmt 101 --top 0 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --quiet");
+	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $inputFastaFile --out $temporaryPrefix.sam --outfmt 101 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --masking 0 --quiet");
+#	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $inputFastaFile --out $temporaryPrefix.sam --outfmt 101 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --masking 0 --quiet --top 0");
+#	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $inputFastaFile --out $temporaryPrefix.sam --outfmt 101 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --masking 0 --quiet --max-target-seqs 0");
 }
 {
 	open(my $reader, "$temporaryPrefix.sam");
@@ -126,7 +128,7 @@ my @alignmentTokenListList = ();
 		my @clusterIndexList = map {defined($_) ? $_ - 1 : $_} getPositionList(1, $clusterCigar);
 		my @clusterVariantIndexList = grep {defined($_->[0]) && defined($_->[0] = $clusterIndexList[$_->[0]])} map {[$proteinIndexList[$_], $_ + ($tokenHash{'ZS:i'} - 1)]} 0 .. $#proteinIndexList;
 		my $clusterSequence = getClusterSequence($cluster, $clusterStart, $clusterEnd);
-		my $variantSequence = $proteinSequenceHash{$tokenHash{'qname'}};
+		(my $variantSequence = $proteinSequenceHash{$tokenHash{'qname'}}) =~ s/\*$//;
 		my @clusterAAList = split(//, $clusterSequence);
 		my @variantAAList = split(//, $variantSequence);
 		my @clusterAlignmentAAList = ();

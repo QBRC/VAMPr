@@ -21,7 +21,8 @@ my @samMandatoryFieldList = ('qname', 'flag', 'rname', 'pos', 'mapq', 'cigar', '
 my $dataPath = "$vampPath/VAMP_data";
 
 my @codonList = ();
-GetOptions('h' => \(my $help = ''),
+GetOptions(
+	'h' => \(my $help = ''),
 	't=s' => \(my $temporaryDirectory = defined($ENV{'TMPDIR'}) ? $ENV{'TMPDIR'} : '/tmp'),
 	'C=s' => \@codonList,
 	'S=s' => \(my $startCodons = 'GTG,ATG,CTG,TTG,ATA,ATC,ATT'),
@@ -59,11 +60,12 @@ my @chromosomeList = ();
 my %chromosomeSequenceHash = ();
 {
 	my $chromosome = '';
-	open(my $reader, $inputFastaFile);
+	open(my $reader, ($inputFastaFile =~ /\.gz$/ ? "gzip -dc $inputFastaFile |" : $inputFastaFile)) or die "Can't open '$inputFastaFile': $!";
 	while(my $line = <$reader>) {
 		chomp($line);
 		if($line =~ /^>(\S*)/) {
-			push(@chromosomeList, $chromosome = $1);
+			($chromosome = $1) =~ s/\|/_/g;
+			push(@chromosomeList, $chromosome);
 		} else {
 			$chromosomeSequenceHash{$chromosome} .= uc($line);
 		}
@@ -167,8 +169,9 @@ my $temporaryPrefix = "$temporaryDirectory/VAMP.$hostname.$$";
 	}
 }
 {
-#	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $temporaryPrefix.fasta --out $temporaryPrefix.sam --outfmt 101 --max-target-seqs 0 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --quiet");
-	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $temporaryPrefix.fasta --out $temporaryPrefix.sam --outfmt 101 --top 0 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --quiet");
+	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $temporaryPrefix.fasta --out $temporaryPrefix.sam --outfmt 101 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --masking 0 --quiet");
+#	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $temporaryPrefix.fasta --out $temporaryPrefix.sam --outfmt 101 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --masking 0 --quiet --top 0");
+#	system("diamond blastp --threads $threads --db $dataPath/protein.dmnd --query $temporaryPrefix.fasta --out $temporaryPrefix.sam --outfmt 101 --evalue $evalue --unal 0 --tmpdir $temporaryDirectory --masking 0 --quiet --max-target-seqs 0");
 }
 {
 	open(my $reader, "$temporaryPrefix.sam");
@@ -360,7 +363,11 @@ my @alignmentTokenListList = ();
 			}
 		}
 		if($alignmentFile ne '') {
-			push(@alignmentTokenListList, [$tokenHash{'qname'}, $cluster, join('', @variantAlignmentAAList), join('', @clusterAlignmentAAList), $clusterStart]);
+			my $unmatchedAACount = 0;
+			foreach my $index (0 .. $alignmentLength - 1) {
+				$unmatchedAACount += 1 unless(isMatched($clusterAlignmentAAList[$index], $variantAlignmentAAList[$index]));
+			}
+			push(@alignmentTokenListList, [$tokenHash{'qname'}, $cluster, join('', @variantAlignmentAAList), join('', @clusterAlignmentAAList), $clusterStart, $unmatchedAACount]);
 		}
 		my @clusterPositionList = ();
 		my %clusterPositionIndexHash = ();
